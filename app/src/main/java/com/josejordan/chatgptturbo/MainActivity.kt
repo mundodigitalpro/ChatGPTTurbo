@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity() {
     // Constantes para utilizar en la comunicación con la API de OpenAI
     companion object {
         private const val TAG = "MainActivity"
-        private const val API_KEY = "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"
+        private const val API_KEY = "CHATGPTAPIKEY"
         private const val MODEL_NAME = "gpt-3.5-turbo"
         private const val MAX_TOKENS = 200
         private const val TEMPERATURE = 1.0
