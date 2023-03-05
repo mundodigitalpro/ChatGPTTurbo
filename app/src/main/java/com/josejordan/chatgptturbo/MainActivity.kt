@@ -7,6 +7,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.textfield.TextInputEditText
+import com.google.gson.Gson
 import kotlinx.coroutines.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
@@ -77,9 +78,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @Throws(IOException::class)
+
 // Función que realiza la petición a la API de OpenAI y devuelve la respuesta
-    private suspend fun getResponse(query: String): String? {
+/*    private suspend fun getResponse(query: String): String? {
         return withContext(Dispatchers.IO) {
             val client = OkHttpClient()
             val url = "https://api.openai.com/v1/chat/completions"
@@ -122,7 +123,54 @@ class MainActivity : AppCompatActivity() {
             }
             return@withContext null
         }
+    }*/
+
+    //Cambiando a GSON
+    @Throws(IOException::class)
+    private suspend fun getResponse(query: String): String? {
+        return withContext(Dispatchers.IO) {
+            val client = OkHttpClient()
+            val url = "https://api.openai.com/v1/chat/completions"
+            val mediaType = "application/json".toMediaTypeOrNull()
+            val postFields = JSONObject()
+            postFields.put("model", MODEL_NAME)
+            val messagesList: MutableList<JSONObject?> = ArrayList()
+            val messageObj = JSONObject()
+            messageObj.put("role", "user")
+            messageObj.put("content", query)
+            messagesList.add(messageObj)
+            val messagesArr = JSONArray(messagesList)
+            postFields.put("messages", messagesArr)
+            postFields.put("max_tokens", MAX_TOKENS)
+            postFields.put("temperature", TEMPERATURE)
+            val requestBody = postFields.toString().toRequestBody(mediaType)
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer $API_KEY")
+                .build()
+
+            // Realiza la petición HTTP a la API de OpenAI
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.e(TAG, "Error: ${response.code}")
+                    return@withContext null
+                }
+
+                // Utiliza la biblioteca GSON para analizar la respuesta JSON en objetos Kotlin
+                val responseBody = response.body?.string()
+                val gson = Gson()
+                val openAIResponse = gson.fromJson(responseBody, OpenAIResponse::class.java)
+                val choices = openAIResponse.choices
+                if (choices.isNotEmpty()) {
+                    return@withContext choices[0].text
+                }
+            }
+            return@withContext null
+        }
     }
+
 
 
     // Cancela todas las coroutines cuando se destruye la actividad
@@ -131,6 +179,15 @@ class MainActivity : AppCompatActivity() {
         job.cancel()
     }
 }
+
+data class OpenAIResponse(
+    val choices: List<OpenAIChoice>
+)
+
+data class OpenAIChoice(
+    val text: String
+)
+
 
 
 
